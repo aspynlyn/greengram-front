@@ -17,15 +17,9 @@ const props = defineProps({
           :clsValue="'profile pointer'"
           :size="24"
           :pic="props.item.writerPic"
-          :userId="props.item.writerUserId"
-        />
+          :userId="props.item.writerUserId" />
       </router-link>
-      <template
-        v-if="
-          authenticationStore.state.signedUser.userId ===
-          props.item.writerUserId
-        "
-      >
+      <template v-if="authenticationStore.state.signedUser.userId === props.item.writerUserId">
         <i class="fa fa-trash pointer" @click="$emit('onDeleteComment')"></i>
       </template>
     </div>

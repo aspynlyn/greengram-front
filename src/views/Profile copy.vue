@@ -1,6 +1,6 @@
 <script setup>
 import ProfileImg from '@/components/ProfileImg.vue';
-import FeedContainer from '@/components/FeedContainer.vue';
+import FeedCard from '@/components/FeedCard.vue';
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useRoute, onBeforeRouteUpdate } from 'vue-router';
 import { useFeedStore } from '@/stores/feed';
@@ -11,11 +11,19 @@ import {
   deleteUserProfilePic,
 } from '@/services/userService';
 import { postUserFollow, deleteUserFollow } from '@/services/followService';
+import { getFeedList, deleteFeed } from '@/services/feedService';
+import { bindEvent } from '@/utils/commonUtils';
 
 const feedStore = useFeedStore();
 const fileInput = ref(null);
 const authenticationStore = useAuthenticationStore();
 const route = useRoute(); //PathVariable 데이터 가져오기 위한 용도
+
+const data = {
+  profileUserId: '0',
+  page: 1,
+  rowPerPage: 20,
+};
 
 const state = reactive({
   isMyProfile: false,
@@ -27,7 +35,7 @@ const state = reactive({
 const init = (userId) => {
   state.isFinish = false;
   state.userProfile = {
-    userId: userId,
+    userId: '0',
     uid: '',
     pic: '',
     nickName: '',
@@ -38,7 +46,13 @@ const init = (userId) => {
     followingCount: 0,
     followState: 0,
   };
-  state.isMyProfile = userId === authenticationStore.state.signedUser.userId;
+  feedStore.clearList();
+
+  data.page = 1;
+  data.profileUserId = userId;
+
+  state.isMyProfile =
+    data.profileUserId === authenticationStore.signedUser.userId;
 };
 
 init(route.params.userId);
@@ -66,7 +80,7 @@ const getFollowStateText = (followState) => {
 
 const getUserData = async () => {
   const params = {
-    profile_user_id: state.userProfile.userId,
+    profile_user_id: data.profileUserId,
   };
   const res = await getUserProfile(params);
 
@@ -76,6 +90,26 @@ const getUserData = async () => {
   }
 };
 
+const getFeedData = async () => {
+  state.isLoading = true;
+  const params = {
+    page: data.page++,
+    row_per_page: data.rowPerPage,
+    profile_user_id: data.profileUserId,
+  };
+  const res = await getFeedList(params);
+  if (res.status === 200) {
+    const result = res.data.result;
+    if (result && result.length > 0) {
+      feedStore.addFeedList(result);
+    }
+    if (result.length < data.rowPerPage) {
+      state.isFinish = true;
+    }
+  }
+  state.isLoading = false;
+};
+
 const removeUserPic = async () => {
   console.log('프로파일 이미지 삭제');
 
@@ -83,6 +117,24 @@ const removeUserPic = async () => {
   if (res.status === 200) {
     state.userProfile.pic = null;
     authenticationStore.setSigndUserPic(null);
+  }
+};
+
+//피드 삭제
+const doDeleteFeed = async (feedId, idx) => {
+  if (!confirm('삭제하시겠습니까?')) {
+    return;
+  }
+
+  console.log('feedId:', feedId);
+  console.log('idx:', idx);
+
+  const params = { feed_id: feedId };
+
+  const res = await deleteFeed(params);
+  if (res.status === 200) {
+    //state.list.splice(idx, 1);
+    feedStore.deleteFeedByIdx(idx);
   }
 };
 
@@ -109,14 +161,21 @@ const handlePicChanged = async (e) => {
   }
 };
 
+const handleScroll = () => {
+  bindEvent(state, window, getFeedData);
+};
+
+const getData = () => {
+  getUserData();
+  getFeedData();
+};
+
 //팔로우 버튼 클릭시
 const onClickFollow = async () => {
   switch (state.userProfile.followState) {
     case 0:
     case 2: //post
-      const postRes = await postUserFollow({
-        toUserId: state.userProfile.userId,
-      });
+      const postRes = await postUserFollow({ toUserId: data.profileUserId });
       if (postRes.status === 200) {
         state.userProfile.followState += 1;
         state.userProfile.followerCount += 1;
@@ -124,7 +183,7 @@ const onClickFollow = async () => {
       break;
     default: //delete
       const deleteRes = await deleteUserFollow({
-        to_user_id: state.userProfile.userId,
+        to_user_id: data.profileUserId,
       });
       if (deleteRes.status === 200) {
         state.userProfile.followState -= 1;
@@ -134,22 +193,23 @@ const onClickFollow = async () => {
   }
 };
 
-const getData = (userId) => {
-  getUserData();
-  feedStore.init();
-  feedStore.setProfileUserId(userId);
-  feedStore.setReLoading(true);
-};
-
 onMounted(() => {
-  getData(route.params.userId);
+  window.addEventListener('scroll', handleScroll);
+  getData();
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+  feedStore.clearList();
 });
 
 onBeforeRouteUpdate((to, from) => {
+  console.log('onBeforeRouteUpdate: to', to);
+  console.log('to.params.userId:', to.params.userId);
   const toUserId = to.params.userId;
-  if (toUserId !== state.userProfile.userId) {
+  if (toUserId !== data.profileUserId) {
     init(toUserId);
-    getData(toUserId);
+    getData();
   }
 });
 </script>
@@ -179,8 +239,7 @@ onBeforeRouteUpdate((to, from) => {
                   type="button"
                   class="instaBtn"
                   :value="getFollowStateText(state.userProfile.followState)"
-                  @click="onClickFollow"
-                />
+                  @click="onClickFollow" />
               </td>
             </tr>
           </tbody>
@@ -192,25 +251,21 @@ onBeforeRouteUpdate((to, from) => {
               :clsValue="`profile ${state.isMyProfile ? 'pointer' : ''}`"
               :size="300"
               :pic="state.userProfile.pic"
-              :userId="state.userProfile.userId"
-            />
+              :userId="state.userProfile.userId" />
           </div>
           <div
             className="d-inline-flex item_container width-50"
-            v-if="state.isMyProfile && state.userProfile.pic"
-          >
+            v-if="state.isMyProfile && state.userProfile.pic">
             <i
               className="fa fa-minus-square color-red pointer"
-              @click="removeUserPic"
-            />
+              @click="removeUserPic" />
           </div>
           <input
             hidden
             type="file"
             accept="image/*"
             ref="fileInput"
-            @change="handlePicChanged"
-          />
+            @change="handlePicChanged" />
         </div>
         <table>
           <thead></thead>
@@ -235,7 +290,16 @@ onBeforeRouteUpdate((to, from) => {
       </div>
 
       <div class="item_container mt-3">
-        <FeedContainer :yn-del="state.isMyProfile" />
+        <feed-card
+          v-for="(item, idx) in feedStore.feedList"
+          :key="item.feedId"
+          :item="item"
+          :yn-del="true"
+          @on-delete-feed="doDeleteFeed(item.feedId, idx)"></feed-card>
+      </div>
+
+      <div class="loading display-none" v-if="state.isLoading">
+        <img :src="loadingImg" />
       </div>
     </div>
   </section>

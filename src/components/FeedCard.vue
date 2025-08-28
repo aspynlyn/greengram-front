@@ -19,8 +19,8 @@ const authenticationStore = useAuthenticationStore();
 
 const props = defineProps({
   item: {
-    feedId: Number,
-    writerUserId: Number,
+    feedId: String,
+    writerUserId: String,
     writerPic: String,
     writerNm: String,
     location: String,
@@ -42,7 +42,6 @@ const state = reactive({
 });
 
 const toggleLike = async () => {
-  console.log('toggleLike click!');
   const data = { feedId: props.item.feedId };
   const res = await toggleFeedLike(data);
   if (res.status === 200) {
@@ -50,20 +49,6 @@ const toggleLike = async () => {
     state.likeCount = state.isLike ? state.likeCount + 1 : state.likeCount - 1;
   }
 };
-
-// const deleteFeed = async () => {
-//   if(!ynDel || !confirm('삭제하시겠습니까?')) { return; }
-
-//   const params = {
-//     feed_id: props.item.feedId
-//   }
-
-//   const res = await deleteFeed(params);
-//   if(res.status === 200) {
-
-//   }
-
-// }
 </script>
 
 <template>
@@ -75,8 +60,7 @@ const toggleLike = async () => {
             :userId="props.item.writerUserId"
             :pic="props.item.writerPic"
             :size="30"
-            :clsValue="'pointer profile'"
-          />
+            :clsValue="'pointer profile'" />
         </router-link>
       </div>
       <div class="p-3 flex-grow-1">
@@ -97,15 +81,12 @@ const toggleLike = async () => {
       <div
         v-if="
           props.ynDel &&
-          props.item.writerUserId ===
-            authenticationStore.state.signedUser.userId
-        "
-      >
+          props.item.writerUserId === authenticationStore.state.signedUser.userId
+        ">
         <div className="d-flex flex-column justify-content-center">
           <i
             className="fa fa-trash pointer color-red"
-            @click="$emit('onDeleteFeed')"
-          ></i>
+            @click="$emit('onDeleteFeed')"></i>
         </div>
       </div>
     </div>
@@ -115,19 +96,16 @@ const toggleLike = async () => {
       :modules="state.modules"
       :pagination="{ clickable: true, dynamicBullets: true }"
       :slides-per-view="1"
-      :space-between="50"
-    >
+      :space-between="50">
       <swiper-slide
         v-for="(item, idx) in props.item.pics"
         :virtualIndex="idx"
-        :key="idx"
-      >
+        :key="idx">
         <img
           :src="`${baseUrl}/pic/feed/${props.item.feedId}/${item}`"
           :alt="`이미지`"
           :aria-label="`이미지`"
-          class="w614"
-        />
+          class="w614" />
       </swiper-slide>
     </swiper>
     <div class="favCont p-2 d-flex flex-row">
@@ -135,8 +113,7 @@ const toggleLike = async () => {
         :class="`${
           state.isLike ? 'fas' : 'far'
         } fa-heart pointer rem1_2 me-3 color-red`"
-        @click="toggleLike"
-      ></i>
+        @click="toggleLike"></i>
       <span>{{ state.likeCount }}</span>
     </div>
     <div class="itemCtnt p-2" v-if="props.item.contents">
@@ -144,8 +121,7 @@ const toggleLike = async () => {
     </div>
     <feed-comment-container
       :feed-id="props.item.feedId"
-      :comments="props.item.comments"
-    />
+      :comments="props.item.comments" />
   </div>
 </template>
 

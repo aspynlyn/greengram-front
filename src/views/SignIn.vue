@@ -21,9 +21,7 @@ const state = reactive({
 
 const submit = async () => {
   //유효성 체크
-  if (checkValidation()) {
-    return;
-  }
+  if (checkValidation()) { return; }
 
   const res = await signIn(state.form);
   console.log('Login.vue - submit() - res: ', res);
@@ -34,6 +32,7 @@ const submit = async () => {
     await router.push('/');
   }
 };
+
 </script>
 
 <template>
@@ -51,8 +50,7 @@ const submit = async () => {
             v-model="state.form.uid"
             not-null-message="아이디는 필수로 입력하셔야 합니다."
             regexp="^[A-Za-z0-9_]{4,50}$"
-            regexp-message="아이디는 영어, 숫자, 언더바로만 구성되어야 하며 4~50자까지 작성할 수 있습니다."
-          />
+            regexp-message="아이디는 영어, 숫자, 언더바로만 구성되어야 하며 4~50자까지 작성할 수 있습니다." />
           <label for="uid">아이디</label>
         </div>
         <div class="form-floating">
@@ -65,25 +63,14 @@ const submit = async () => {
             autocomplete="off"
             not-null-message="비밀번호는 필수로 입력하셔야 합니다."
             regexp="^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&amp;*()_+\-=\[\]{};':&quot;\\|,.&lt;&gt;\/?])[A-Za-z\d!@#$%^&amp;*()_+\-=\[\]{};':&quot;\\|,.&lt;&gt;\/?]{10,}$"
-            regexp-message="비밀번호는 영문자, 숫자, 특수기호로 구성되며 10자 이상이어야 합니다."
-          />
+            regexp-message="비밀번호는 영문자, 숫자, 특수기호로 구성되며 10자 이상이어야 합니다." />
           <label for="upw">비밀번호</label>
         </div>
         <button class="w-100 h6 btn py-3 btn-primary">로그인</button>
       </form>
       <div class="mb-3">
-        <span class="pointer"
-          ><a
-            :href="`${beBaseUrl}/oauth2/authorization/naver?redirect_uri=${redirectUrl}`"
-            >네이버</a
-          ></span
-        >
-        <span class="pointer"
-          ><a
-            :href="`${beBaseUrl}/oauth2/authorization/kakao?redirect_uri=${redirectUrl}`"
-            >카카오</a
-          ></span
-        >
+        <span class="pointer"><a :href="`${beBaseUrl}/oauth2/authorization/naver?redirect_uri=${redirectUrl}`">네이버</a></span>        
+        <span class="pointer"><a :href="`${beBaseUrl}/oauth2/authorization/kakao?redirect_uri=${redirectUrl}`">카카오</a></span>        
       </div>
       <div>
         <router-link to="/sign-up"><span>회원가입</span></router-link>

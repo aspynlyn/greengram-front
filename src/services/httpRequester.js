@@ -17,10 +17,7 @@ axios.interceptors.response.use(
       const authenticationStore = useAuthenticationStore();
       if (err.config.url === '/user/reissue' && err.response.status === 500) {
         authenticationStore.signOut();
-      } else if (
-        err.response.status === 401 &&
-        authenticationStore.state.isSigned
-      ) {
+      } else if (err.response.status === 401 && authenticationStore.state.isSigned) {
         //401 UnAuthorized 에러인데 FE 로그인 처리 되어 있다면
 
         await reissue(); //AccessToken 재발행 시도
